@@ -26,6 +26,30 @@ classdef TransUtils_teg
 				-ctheta * spsi
 			] * inArgs.V;
 		end
+		% 将速度矢量转换为速度大小、方向，遵循北天东定义
+		function outArgs = velVec_2_velDir(inVec)
+			arguments
+				inVec	(3, 1)	double	% 输入速度矢量
+			end
+			V = norm(inVec);
+			outArgs = struct('V', V);
+			if V == 0
+				outArgs.status = 'zeroVec';
+				return
+			end
+			vy = inVec(2);
+			theta = asin(vy / V);
+			outArgs.theta = theta;
+			vx = inVec(1);
+			vz = inVec(3);
+			if vx == 0 && vz == 0
+				outArgs.status = 'verticalVec';
+				return
+			end
+			psi = atan2(-vz, vx);
+			outArgs.psi = psi;
+			outArgs.status = 'ok';
+		end
 		% 按照从速度大小与方向转换至速度矢量的公式，计算速度矢量关于速度大小的偏导数。原理公式见文档
 		function result = par_velVec_par_V(inArgs)
 			arguments(Input)

@@ -7,6 +7,8 @@
 #include <tuple>
 #include "../BaseFunc.h"
 
+#include <iostream>
+
 #define __TEG_TEMPMARK_LINALG__
 
 #define __TEG_LINALG_ENABLE_PARAM_CHECK__	// 开启参数检查
@@ -264,6 +266,24 @@ namespace Teg {
 				Matrix<OtherMaxRows, OtherMaxCols> result;
 				result = *this;
 				return result;
+			}
+			// 重载输出运算符
+			friend std::ostream& operator<<(std::ostream& os, const Matrix<MaxRows, MaxCols, matType>& mat) {
+				if (!mat.isValidMatrix()) {
+					os << "[inValidMatrix]";
+				}
+				else {
+					for (int rowIdx = 0; rowIdx < mat.getRows(); ++rowIdx) {
+						os << mat(rowIdx, 0);
+						for (int colIdx = 1; colIdx < mat.getCols(); ++colIdx) {
+							os << '\t' << mat(rowIdx, colIdx);
+						}
+						if (rowIdx < mat.getRows() - 1) {
+							os << '\n';
+						}
+					}
+				}
+				return os;
 			}
 			// 是否为行/列向量
 			bool isVector() const {

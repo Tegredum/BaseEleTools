@@ -129,7 +129,7 @@ enum LeftDivideMethod {
 template <int MaxRows_other, int MaxCols_other, MatrixType matType_other>
 Matrix<min_int3<MaxRows, MaxRows_other, MaxCols>::val, MaxCols_other> leftDivide(const Matrix<MaxRows_other, MaxCols_other, matType_other>& other, LeftDivideMethod method = GaussJordan) const {
 #ifdef __TEG_LINALG_ENABLE_PARAM_CHECK__
-	if (cols != other.rows) {
+	if (cols != other.getRows()) {
 		throw std::invalid_argument("Matrix size not match");
 	}
 	if (!this->isSquare()) {

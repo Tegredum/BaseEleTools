@@ -336,13 +336,13 @@ namespace Teg {
 				return std::make_tuple(minVal, minRowIdx, minColIdx);
 			}
 			// 加减乘除等数学运算
-			#include "CalculationOperators.teg"
+			#include "CalculationOperators.cpp"
 			// 矩阵切片操作
-			#include "SliceOperations.teg"
+			#include "SliceOperations.cpp"
 			// 特殊矩阵
-			#include "SpecialMatrix.teg"
+			#include "SpecialMatrix.cpp"
 			// 矩阵变换操作
-			#include "MatrixTransformation.teg"
+			#include "MatrixTransformation.cpp"
 		};
 
 		template <int MaxSize>

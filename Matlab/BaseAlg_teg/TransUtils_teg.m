@@ -32,8 +32,8 @@ classdef TransUtils_teg
 				inVec	(3, 1)	double	% 输入矢量本身
 			end
 			r = norm(inVec);
-			outArgs = struct('norm', norm);
-			if norm == 0
+			outArgs = struct('norm', r);
+			if r == 0
 				outArgs.status = 'zeroVec';
 				return
 			end

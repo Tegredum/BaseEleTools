@@ -107,5 +107,67 @@ classdef TransUtils_teg
 				cpsi
 			] * (-inArgs.norm * ctheta);
 		end
+		% 旋转矩阵 RY
+		function R = rotMatY(theta)
+			arguments(Input)
+				theta	(1, 1)	double	% 旋转角度（rad）
+			end
+			arguments(Output)
+				R		(3, 3)	double	% 旋转矩阵
+			end
+			ctheta = cos(theta);
+			stheta = sin(theta);
+			R = [
+				ctheta,		0.0,	stheta;
+				0.0,		1.0,	0.0;
+				-stheta,	0.0,	ctheta
+			];
+		end
+		% 旋转矩阵 RZ
+		function R = rotMatZ(theta)
+			arguments(Input)
+				theta	(1, 1)	double	% 旋转角度（rad）
+			end
+			arguments(Output)
+				R		(3, 3)	double	% 旋转矩阵
+			end
+			ctheta = cos(theta);
+			stheta = sin(theta);
+			R = [
+				ctheta,		-stheta,	0.0;
+				stheta,		ctheta,		0.0;
+				0.0,		0.0,		1.0
+			];
+		end
+		% 将输入向量在地面系下的坐标转换为弹道系下的坐标
+		function outVec = earth2orbit(inVec, theta, psi)
+			arguments(Input)
+				inVec	(3, 1)	double	% 输入矢量本身
+				theta	(1, 1)	double	% 弹道倾角（rad）
+				psi		(1, 1)	double	% 弹道偏角（rad）
+			end
+			arguments(Output)
+				outVec	(3, 1)	double	% 输出矢量本身
+			end
+			% 原理详见文档
+			RZ = TransUtils_teg.rotMatZ(-theta);
+			RY = TransUtils_teg.rotMatY(-psi);
+			outVec = RZ * (RY * inVec);
+		end
+		% 将输入向量在弹道系下的坐标转换为地面系下的坐标
+		function outVec = orbit2earth(inVec, theta, psi)
+			arguments(Input)
+				inVec	(3, 1)	double	% 输入矢量本身
+				theta	(1, 1)	double	% 弹道倾角（rad）
+				psi		(1, 1)	double	% 弹道偏角（rad）
+			end
+			arguments(Output)
+				outVec	(3, 1)	double	% 输出矢量本身
+			end
+			% 原理详见文档
+			RY = TransUtils_teg.rotMatY(psi);
+			RZ = TransUtils_teg.rotMatZ(theta);
+			outVec = RY * (RZ * inVec);
+		end
 	end
 end

@@ -107,6 +107,171 @@ classdef TransUtils_teg
 				cpsi
 			] * (-inArgs.norm * ctheta);
 		end
+		% 将上述三个方法合并，计算重构矢量关于输入矢量大小、方向角度偏导矩阵
+		function result = par_vec_par_rtp(rtp)
+			arguments
+				rtp	(3, 1)	double	% [r; theta; psi]
+			end
+			r = rtp(1);
+			theta = rtp(2);
+			psi = rtp(3);
+			result = [
+				TransUtils_teg.par_vec_par_norm(...
+					'norm', r,...
+					'theta', theta,...
+					'psi', psi),...
+				TransUtils_teg.par_vec_par_theta(...
+					'norm', r,...
+					'theta', theta,...
+					'psi', psi),...
+				TransUtils_teg.par_vec_par_psi(...
+					'norm', r,...
+					'theta', theta,...
+					'psi', psi)
+			];
+		end
+		% 计算重构矢量关于输入矢量大小、方向角度偏导矩阵的逆矩阵，公式详见文档
+		function outArgs = par_vec_par_rtp_inv(rtp)
+			arguments
+				rtp	(3, 1)	double	% [r; theta; psi]
+			end
+			outArgs = struct();
+			outArgs.status = 'ok';
+			r = rtp(1);
+			theta = rtp(2);
+			psi = rtp(3);
+			ctheta = cos(theta);
+			stheta = sin(theta);
+			cpsi = cos(psi);
+			spsi = sin(psi);
+			% 结果矩阵
+			outArgs.result = [
+				ctheta * cpsi,	stheta,	-ctheta * spsi;
+				zeros(2, 3)
+			];
+			if r == 0.0
+				% r 为 0 时，将结果矩阵后两行置零
+				outArgs.status = 'zeroR';
+				return
+			end
+			outArgs.result(2, :) = [-stheta * cpsi, ctheta, stheta * spsi] / r;
+			if ctheta == 0.0
+				% cos(theta) 为 0 时，将结果矩阵最后一行置零
+				outArgs.status = 'vertical';
+				return
+			end
+			outArgs.result(3, :) = [spsi, 0.0, cpsi] / (-r * ctheta);
+		end
+		% 计算某个逆矩阵关于某个输入的偏导数的，详见文档
+		function outArgs = par_par_vec_par_rtp_inv_r(rtp)
+			arguments
+				rtp	(3, 1)	double	% [r; theta; psi]
+			end
+			outArgs = struct();
+			outArgs.status = 'ok';
+			r = rtp(1);
+			theta = rtp(2);
+			psi = rtp(3);
+			ctheta = cos(theta);
+			stheta = sin(theta);
+			cpsi = cos(psi);
+			spsi = sin(psi);
+			% 结果矩阵
+			outArgs.result = zeros(3, 3);
+			if r == 0.0
+				% r 为 0 时，将结果矩阵后两行置零
+				outArgs.status = 'zeroR';
+				return
+			end
+			outArgs.result(2, :) = [-stheta * cpsi, ctheta, stheta * spsi] / (-r^2);
+			if ctheta == 0.0
+				% cos(theta) 为 0 时，将结果矩阵最后一行置零
+				outArgs.status = 'vertical';
+				return
+			end
+			outArgs.result(3, :) = [spsi, 0.0, cpsi] / (r^2 * ctheta);
+		end
+		% 计算某个逆矩阵关于某个输入的偏导数的，详见文档
+		function outArgs = par_par_vec_par_rtp_inv_t(rtp)
+			arguments
+				rtp	(3, 1)	double	% [r; theta; psi]
+			end
+			outArgs = struct();
+			outArgs.status = 'ok';
+			r = rtp(1);
+			theta = rtp(2);
+			psi = rtp(3);
+			ctheta = cos(theta);
+			stheta = sin(theta);
+			cpsi = cos(psi);
+			spsi = sin(psi);
+			% 结果矩阵
+			outArgs.result = [
+				-stheta * cpsi,	ctheta,	stheta * spsi;
+				zeros(2, 3)
+			];
+			if r == 0.0
+				% r 为 0 时，将结果矩阵后两行置零
+				outArgs.status = 'zeroR';
+				return
+			end
+			outArgs.result(2, :) = [-ctheta * cpsi, -stheta, ctheta * spsi] / r;
+			if ctheta == 0.0
+				% cos(theta) 为 0 时，将结果矩阵最后一行置零
+				outArgs.status = 'vertical';
+				return
+			end
+			outArgs.result(3, :) = [spsi, 0.0, cpsi] * (-stheta / (r * ctheta^2));
+		end
+		% 计算某个逆矩阵关于某个输入的偏导数的，详见文档
+		function outArgs = par_par_vec_par_rtp_inv_p(rtp)
+			arguments
+				rtp	(3, 1)	double	% [r; theta; psi]
+			end
+			outArgs = struct();
+			outArgs.status = 'ok';
+			r = rtp(1);
+			theta = rtp(2);
+			psi = rtp(3);
+			ctheta = cos(theta);
+			stheta = sin(theta);
+			cpsi = cos(psi);
+			spsi = sin(psi);
+			% 结果矩阵
+			outArgs.result = [
+				[spsi,	0.0,	cpsi] * (-ctheta);
+				zeros(2, 3)
+			];
+			if r == 0.0
+				% r 为 0 时，将结果矩阵后两行置零
+				outArgs.status = 'zeroR';
+				return
+			end
+			outArgs.result(2, :) = [spsi, 0.0, cpsi] * (stheta / r);
+			if ctheta == 0.0
+				% cos(theta) 为 0 时，将结果矩阵最后一行置零
+				outArgs.status = 'vertical';
+				return
+			end
+			outArgs.result(3, :) = [-cpsi, 0.0, spsi] / (r * ctheta);
+		end
+		% 通过 index 调用上面的逆矩阵偏导计算方法
+		function outArgs = par_par_vec_par_rtp_inv_byIdx(rtp, idx)
+			arguments
+				rtp	(3, 1)	double	% [r; theta; psi]
+				idx	(1, 1)	double	% 偏导索引
+			end
+			switch idx
+				case 0
+					outArgs = TransUtils_teg.par_par_vec_par_rtp_inv_r(rtp);
+				case 1
+					outArgs = TransUtils_teg.par_par_vec_par_rtp_inv_t(rtp);
+				case 2
+					outArgs = TransUtils_teg.par_par_vec_par_rtp_inv_p(rtp);
+				otherwise
+					error('Invalid index')
+			end
+		end
 		% 旋转矩阵 RY
 		function R = rotMatY(theta)
 			arguments(Input)

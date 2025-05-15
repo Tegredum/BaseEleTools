@@ -155,7 +155,7 @@ classdef TransUtils_teg
 				return
 			end
 			outArgs.result(2, :) = [-stheta * cpsi, ctheta, stheta * spsi] / r;
-			if ctheta == 0.0
+			if r * ctheta == 0.0
 				% cos(theta) 为 0 时，将结果矩阵最后一行置零
 				outArgs.status = 'vertical';
 				return
@@ -178,13 +178,13 @@ classdef TransUtils_teg
 			spsi = sin(psi);
 			% 结果矩阵
 			outArgs.result = zeros(3, 3);
-			if r == 0.0
+			if r^2 == 0.0
 				% r 为 0 时，将结果矩阵后两行置零
 				outArgs.status = 'zeroR';
 				return
 			end
 			outArgs.result(2, :) = [-stheta * cpsi, ctheta, stheta * spsi] / (-r^2);
-			if ctheta == 0.0
+			if r^2 * ctheta == 0.0
 				% cos(theta) 为 0 时，将结果矩阵最后一行置零
 				outArgs.status = 'vertical';
 				return
@@ -216,7 +216,7 @@ classdef TransUtils_teg
 				return
 			end
 			outArgs.result(2, :) = [-ctheta * cpsi, -stheta, ctheta * spsi] / r;
-			if ctheta == 0.0
+			if r * ctheta^2 == 0.0
 				% cos(theta) 为 0 时，将结果矩阵最后一行置零
 				outArgs.status = 'vertical';
 				return
@@ -248,7 +248,7 @@ classdef TransUtils_teg
 				return
 			end
 			outArgs.result(2, :) = [spsi, 0.0, cpsi] * (stheta / r);
-			if ctheta == 0.0
+			if r * ctheta == 0.0
 				% cos(theta) 为 0 时，将结果矩阵最后一行置零
 				outArgs.status = 'vertical';
 				return

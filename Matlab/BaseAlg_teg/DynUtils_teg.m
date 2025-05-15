@@ -76,5 +76,93 @@ classdef DynUtils_teg
 			end
 			result = -([sin(inArgs.qb), 0.0, cos(inArgs.qb)] * (inArgs.vel_target - inArgs.vel_missile));	% 公式详见文档
 		end
+		% 计算速度大小、速度方向角变化率
+		function outArgs = calc_dvgp(inArgs)
+			arguments
+				inArgs.a	(3, 1)	double	% 弹道系加速度矢量 [ax; ay; az]
+				inArgs.vgp	(3, 1)	double	% [V; gamma; psi]
+				inArgs.g	(1, 1)	double	% 重力加速度
+			end
+			outArgs = struct();
+			outArgs.status = 'ok';
+			% 原理详见文档
+			ax = inArgs.a(1);
+			ay = inArgs.a(2);
+			az = inArgs.a(3);
+			V = inArgs.vgp(1);
+			gamma = inArgs.vgp(2);
+			cgamma = cos(gamma);
+			g = inArgs.g;
+			outArgs.result = [
+				ax - g * cgamma;
+				zeros(2, 1)
+			];
+			if V == 0.0
+				outArgs.status = 'zeroR';
+				return
+			end
+			outArgs.result(2) = (ay - g * cgamma) / V;
+			if V * cgamma == 0.0
+				outArgs.status = 'vertical';
+				return
+			end
+			outArgs.result(3) = -az / (V * cgamma);
+		end
+		% 计算速度大小、速度方向角变化率关于弹道系加速度矢量的偏导数矩阵
+		function outArgs = calc_par_dvgp_par_a(vgp, g)
+			arguments
+				vgp	(3, 1)	double	% [V; gamma; psi]
+				g	(1, 1)	double	% 重力加速度
+			end
+			outArgs = struct();
+			outArgs.status = 'ok';
+			% 原理详见文档
+			V = vgp(1);
+			gamma = vgp(2);
+			outArgs.result = diag([1.0, zeros(1, 2)]);
+			if V == 0.0
+				outArgs.status = 'zeroR';
+				return
+			end
+			outArgs.result(2, 2) = 1.0 / V;
+			cgamma = cos(gamma);
+			if V * cgamma == 0.0
+				outArgs.status = 'vertical';
+				return
+			end
+			outArgs.result(3, 3) = -1.0 / (V * cgamma);
+		end
+		% 计算速度大小、速度方向角变化率关于速度大小、速度方向角的偏导数矩阵
+		function outArgs = calc_par_dvgp_par_vgp(inArgs)
+			arguments
+				inArgs.a	(3, 1)	double	% 弹道系加速度矢量 [ax; ay; az]
+				inArgs.vgp	(3, 1)	double	% [V; gamma; psi]
+				inArgs.g	(1, 1)	double	% 重力加速度
+			end
+			outArgs = struct();
+			outArgs.status = 'ok';
+			% 原理详见文档
+			ay = inArgs.a(2);
+			az = inArgs.a(3);
+			V = inArgs.vgp(1);
+			gamma = inArgs.vgp(2);
+			cgamma = cos(gamma);
+			g = inArgs.g;
+			outArgs.result = [
+				0.0,	-g * cgamma,	0.0;
+				zeros(2, 3)
+			];
+			if V^2 == 0.0
+				outArgs.status = 'zeroR';
+				return
+			end
+			sgamma = sin(gamma);
+			outArgs.result(2, 1: 2) = [-(ay - g * cgamma) / V^2, g * sgamma / V];
+			if (V * cgamma)^2 == 0.0
+				outArgs.status = 'vertical';
+				return
+			end
+			outArgs.result(3, 1: 2) = [az / (V^2 * cgamma), -az * sgamma / (V * cgamma^2)];
+		end
 	end
 end

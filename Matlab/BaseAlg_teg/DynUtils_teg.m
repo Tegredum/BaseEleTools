@@ -33,48 +33,78 @@ classdef DynUtils_teg
 			end
 			result = DynUtils_teg.calc_par_drh_par_relVel(inArgs.qb) * (inArgs.vel_target - inArgs.vel_missile);	% 公式详见文档
 		end
-		% 计算弹目距离、视线角变化率关于弹目距离、视线角的偏导数矩阵
-		function outArgs = calc_par_drq_par_rq(inArgs)
+		% 计算相对距离、水平相对距离、视线角变化率关于相对速度矢量的偏导数矩阵
+		function outArgs = calc_par_drrhq_par_relVel(rhhq)
 			arguments
-				inArgs.rq			(3, 1)	double	% 相对距离与视线角构成的矢量 [r; qe; qb]
+				rhhq	(4, 1)	double	% 相对距离、水平相对距离、视线角变化率构成的矢量 [r; rh; qe; qb]
+			end
+			outArgs = struct();
+			result = zeros(4 ,3);	% 偏导数矩阵
+			% 原理详见文档
+			r = rhhq(1);
+			qe = rhhq(3);
+			qb = rhhq(4);
+			rq = [r, qe, qb];
+			midInvMatArgs = TransUtils_teg.par_vec_par_rtp_inv(rq);
+			outArgs.status = midInvMatArgs.status;
+			result(1, :) = midInvMatArgs.result(1, :);
+			result(3: 4, :) = midInvMatArgs.result(2: 3, :);
+			result(2, :) = DynUtils_teg.calc_par_drh_par_relVel(qb);
+			outArgs.result = result;
+		end
+		% 计算相对距离、水平相对距离、视线角变化率关于相对距离、水平相对距离、视线角的偏导数矩阵（针对抑制动力学非线性而增加了水平相对距离状态量的情形）
+		function outArgs = calc_par_drrhq_par_rhhq(inArgs)
+			arguments
+				inArgs.rhhq			(4, 1)	double	% 相对距离、水平相对距离、视线角变化率构成的矢量 [r; rh; qe; qb]
 				inArgs.vel_missile	(3, 1)	double	% 导弹速度矢量
 				inArgs.vel_target	(3, 1)	double	% 目标速度矢量
 			end
 			outArgs = struct();
+			result = zeros(4 ,4);	% 偏导数矩阵
 			status = 'ok';
+			delta_vel = inArgs.vel_target - inArgs.vel_missile;	% 相对速度矢量
 			% 原理详见文档
-			result = zeros(3, 3);	% 结果矩阵
+			r = inArgs.rhhq(1);
+			rh = inArgs.rhhq(2);
+			qe = inArgs.rhhq(3);
+			qb = inArgs.rhhq(4);
+			rq = [r, qe, qb];
+			midInvParMat_array = cell(3, 1);	% 文档中那些极为复杂的偏导数逆矩阵对标量偏导数矩阵都存在这个数组里。从前到后分别是对 r、qe、qb 的偏导数矩阵
 			for idx = 1: 3
-				midParMatArgs = TransUtils_teg.par_par_vec_par_rtp_inv_byIdx(inArgs.rq, idx - 1);	% 计算二阶偏导矩阵得到的输出结构体
-				result(:, idx) = midParMatArgs.result * (inArgs.vel_target - inArgs.vel_missile);
-				if ~strcmp(midParMatArgs.status, 'ok')
+				midArgs = TransUtils_teg.par_par_vec_par_rtp_inv_byIdx(rq, idx - 1);
+				% 异常标志字
+				if ~strcmp(midArgs.status, 'ok')
 					if strcmp(status, 'ok')
-						status = midParMatArgs.status;
-					elseif strcmp(status, 'vertical')
-						if strcmp(midParMatArgs.status, 'zeroR')
-							status = midParMatArgs.status;
+						status = midArgs.status;
+					else
+						if strcmp(status, 'vertical') && strcmp(midArgs.status, 'zeroR')
+							status = midArgs.status;
 						end
 					end
 				end
+				midInvParMat_array{idx} = midArgs.result;
 			end
-			outArgs.result = result;
+			rowIdx_mapArray = [1, 3];
+			colIdx_mapArray = [1, 3, 4];
+			for rowIdx = 1: 2
+				for colIdx = 1: 3
+					result(rowIdx_mapArray(rowIdx), colIdx_mapArray(colIdx)) = midInvParMat_array{colIdx}(rowIdx, :) * delta_vel;
+				end
+			end
+			sqb = sin(qb);
+			cqb = cos(qb);
+			result(2, 4) = -dot([sqb, 0.0, cqb], delta_vel);
+			if rh^2 == 0.0
+				if strcmp(status, 'ok')
+					outArgs.status = 'vertical';
+				end
+				outArgs.result = result;
+				return
+			end
+			result(4, 2) = dot([sqb, 0.0, cqb], delta_vel) / rh^2;
+			result(4, 4) = -dot([cqb, 0.0, sqb], delta_vel) / rh;
 			outArgs.status = status;
-		end
-		% 计算弹目距离、视线角变化率关于弹目相对速度矢量的偏导数矩阵
-		function outArgs = calc_par_drq_par_relVel(rq)
-			arguments
-				rq	(3, 1)	double	% 相对距离与视线角构成的矢量 [r; qe; qb]
-			end
-			outArgs = TransUtils_teg.par_vec_par_rtp_inv(rq);	% 原理详见文档
-		end
-		% 计算水平向相对距离变化率关于水平视线角的偏导数
-		function result = calc_par_drh_par_qb(inArgs)
-			arguments
-				inArgs.qb			(1, 1)	double	% 水平视线角
-				inArgs.vel_missile	(3, 1)	double	% 导弹速度矢量
-				inArgs.vel_target	(3, 1)	double	% 目标速度矢量
-			end
-			result = -([sin(inArgs.qb), 0.0, cos(inArgs.qb)] * (inArgs.vel_target - inArgs.vel_missile));	% 公式详见文档
+			outArgs.result = result;
 		end
 		% 计算速度大小、速度方向角变化率
 		function outArgs = calc_dvgp(inArgs)
